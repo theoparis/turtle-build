@@ -25,15 +25,7 @@ impl CommandRunner for OsCommandRunner {
     async fn run(&self, command: &str) -> Result<Output, Box<dyn Error>> {
         let permit = self.semaphore.acquire().await?;
 
-        let output = if cfg!(target_os = "windows") {
-            let components = command.split_whitespace().collect::<Vec<_>>();
-            Command::new(components[0])
-                .args(&components[1..])
-                .output()
-                .await?
-        } else {
-            Command::new("sh").arg("-ec").arg(command).output().await?
-        };
+        let output = Command::new("nu").arg("-c").arg(command).output().await?;
 
         drop(permit);
 
