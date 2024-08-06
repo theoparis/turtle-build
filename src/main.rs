@@ -1,27 +1,5 @@
-mod arguments;
-mod ast;
-mod build_graph;
-mod compile;
-mod context;
-mod error;
-mod hash_type;
-mod infrastructure;
-mod ir;
-mod module_dependency;
-mod parse;
-mod run;
-mod tool;
-
-use arguments::{Arguments, Tool};
-use ast::{Module, Statement};
 use clap::Parser;
-use compile::compile;
-use context::Context;
-use error::ApplicationError;
 use futures::future::try_join_all;
-use infrastructure::{OsCommandRunner, OsConsole, OsDatabase, OsFileSystem};
-use module_dependency::ModuleDependencyMap;
-use parse::parse;
 use std::{
     collections::HashMap,
     env::set_current_dir,
@@ -31,6 +9,14 @@ use std::{
     time::Duration,
 };
 use tokio::time::sleep;
+use turtle_build::arguments::{Arguments, Tool};
+use turtle_build::ast::{Module, Statement};
+use turtle_build::compile::compile;
+use turtle_build::context::Context;
+use turtle_build::error::ApplicationError;
+use turtle_build::infrastructure::{OsCommandRunner, OsConsole, OsDatabase, OsFileSystem};
+use turtle_build::module_dependency::ModuleDependencyMap;
+use turtle_build::parse::parse;
 
 const DEFAULT_BUILD_FILE: &str = "build.ninja";
 const DATABASE_DIRECTORY: &str = ".turtle";
@@ -99,7 +85,7 @@ async fn execute(context: &Arc<Context>, arguments: &Arguments) -> Result<(), Ap
         .await?;
     let (modules, dependencies) = parse_modules(context, &root_module_path).await?;
 
-    module_dependency::validate(&dependencies)?;
+    turtle_build::module_dependency::validate(&dependencies)?;
 
     let configuration = Arc::new(compile(&modules, &dependencies, &root_module_path)?);
 
@@ -114,14 +100,14 @@ async fn execute(context: &Arc<Context>, arguments: &Arguments) -> Result<(), Ap
 
     if let Some(tool) = &arguments.tool {
         match tool {
-            Tool::CleanDead => tool::clean_dead(context, &configuration).await?,
+            Tool::CleanDead => turtle_build::tool::clean_dead(context, &configuration).await?,
         }
     } else {
-        run::run(
+        turtle_build::run::run(
             context,
             configuration.clone(),
             &arguments.outputs,
-            run::Options {
+            turtle_build::run::Options {
                 debug: arguments.debug,
                 profile: arguments.profile,
             },
